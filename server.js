@@ -37,7 +37,7 @@ const io = new Server(server, {
     }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(express.json({ limit: '50mb' }));
@@ -185,12 +185,12 @@ const swaggerOptions = {
             description: 'API para sistema de controle de presença com reconhecimento facial',
             contact: {
                 name: 'Sistema de Reconhecimento Facial',
-                email: 'admin@facial-recognition.com'
+                email: 'margefson@gmail.com'
             }
         },
         servers: [
             {
-                url: 'http://localhost:3000',
+                url: 'http://localhost:3001',
                 description: 'Servidor de Desenvolvimento'
             }
         ],
