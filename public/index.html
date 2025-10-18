@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Controle de Presença - Reconhecimento Facial</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-user-check"></i>
+                <h1>Sistema de Presença</h1>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="register">
+                    <i class="fas fa-user-plus"></i>
+                    Cadastro
+                </button>
+                <button class="nav-btn" data-tab="recognize">
+                    <i class="fas fa-camera"></i>
+                    Reconhecimento
+                </button>
+                <button class="nav-btn" data-tab="users">
+                    <i class="fas fa-users"></i>
+                    Usuários
+                </button>
+                <button class="nav-btn" data-tab="attendance">
+                    <i class="fas fa-clipboard-list"></i>
+                    Presenças
+                </button>
+                <button class="nav-btn" data-tab="admin">
+                    <i class="fas fa-user-shield"></i>
+                    Admin
+                </button>
+            </nav>
+        </header>
+
+        <main class="main">
+            <!-- Aba de Cadastro -->
+            <div class="tab-content active" id="register">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-user-plus"></i> Cadastrar Novo Usuário</h2>
+                        <p>Faça o upload de uma foto para cadastrar um novo usuário no sistema</p>
+                    </div>
+                    <form id="registerForm" class="form">
+                        <div class="form-group">
+                            <label for="name">Nome Completo</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="photo">Foto do Rosto</label>
+                            <div class="photo-capture-options">
+                                <div class="capture-tabs">
+                                    <button type="button" class="capture-tab active" data-mode="upload">
+                                        <i class="fas fa-upload"></i>
+                                        Upload
+                                    </button>
+                                    <button type="button" class="capture-tab" data-mode="webcam">
+                                        <i class="fas fa-camera"></i>
+                                        Webcam
+                                    </button>
+                                </div>
+                                
+                                <!-- Upload de arquivo -->
+                                <div class="capture-mode active" id="upload-mode">
+                                    <div class="file-upload">
+                                        <input type="file" id="photo" name="photo" accept="image/*">
+                                        <div class="file-upload-display">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            <span>Clique para selecionar uma foto ou arraste aqui</span>
+                                        </div>
+                                        <div class="preview-container" id="previewContainer" style="display: none;">
+                                            <img id="previewImage" src="" alt="Preview">
+                                            <button type="button" class="remove-preview" id="removePreview">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Captura via webcam -->
+                                <div class="capture-mode" id="webcam-mode">
+                                    <div class="webcam-container">
+                                        <video id="webcamVideo" autoplay muted playsinline style="display: none;"></video>
+                                        <canvas id="webcamCanvas" style="display: none;"></canvas>
+                                        <div class="webcam-preview" id="webcamPreview" style="display: none;">
+                                            <img id="webcamCapturedImage" src="" alt="Foto Capturada">
+                                        </div>
+                                        <div class="webcam-placeholder" id="webcamPlaceholder">
+                                            <i class="fas fa-camera"></i>
+                                            <p>Clique em "Ativar Câmera" para começar</p>
+                                        </div>
+                                        <div class="webcam-controls">
+                                            <button type="button" class="btn btn-secondary" id="startWebcam">
+                                                <i class="fas fa-video"></i>
+                                                Ativar Câmera
+                                            </button>
+                                            <button type="button" class="btn btn-primary" id="capturePhoto" style="display: none;">
+                                                <i class="fas fa-camera"></i>
+                                                Capturar Foto
+                                            </button>
+                                            <button type="button" class="btn btn-warning" id="retakePhoto" style="display: none;">
+                                                <i class="fas fa-redo"></i>
+                                                Tirar Novamente
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="stopWebcam" style="display: none;">
+                                                <i class="fas fa-stop"></i>
+                                                Parar Câmera
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i>
+                            Cadastrar Usuário
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Aba de Reconhecimento -->
+            <div class="tab-content" id="recognize">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-camera"></i> Reconhecimento Facial</h2>
+                        <p>Faça o upload de uma foto para reconhecer o usuário e registrar presença</p>
+                    </div>
+                    <form id="recognizeForm" class="form">
+                        <div class="form-group">
+                            <label for="recognizePhoto">Foto para Reconhecimento</label>
+                            <div class="photo-capture-options">
+                                <div class="capture-tabs">
+                                    <button type="button" class="capture-tab active" data-mode="upload" data-form="recognize">
+                                        <i class="fas fa-upload"></i>
+                                        Upload
+                                    </button>
+                                    <button type="button" class="capture-tab" data-mode="webcam" data-form="recognize">
+                                        <i class="fas fa-camera"></i>
+                                        Webcam
+                                    </button>
+                                </div>
+                                
+                                <!-- Upload de arquivo -->
+                                <div class="capture-mode active" id="recognize-upload-mode">
+                                    <div class="file-upload">
+                                        <input type="file" id="recognizePhoto" name="photo" accept="image/*">
+                                        <div class="file-upload-display">
+                                            <i class="fas fa-camera"></i>
+                                            <span>Clique para selecionar uma foto ou arraste aqui</span>
+                                        </div>
+                                        <div class="preview-container" id="recognizePreviewContainer" style="display: none;">
+                                            <img id="recognizePreviewImage" src="" alt="Preview">
+                                            <button type="button" class="remove-preview" id="recognizeRemovePreview">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Captura via webcam -->
+                                <div class="capture-mode" id="recognize-webcam-mode">
+                                    <div class="webcam-container">
+                                        <video id="recognizeWebcamVideo" autoplay muted playsinline style="display: none;"></video>
+                                        <canvas id="recognizeWebcamCanvas" style="display: none;"></canvas>
+                                        <div class="webcam-preview" id="recognizeWebcamPreview" style="display: none;">
+                                            <img id="recognizeWebcamCapturedImage" src="" alt="Foto Capturada">
+                                        </div>
+                                        <div class="webcam-placeholder" id="recognizeWebcamPlaceholder">
+                                            <i class="fas fa-camera"></i>
+                                            <p>Clique em "Ativar Câmera" para começar</p>
+                                        </div>
+                                        <div class="webcam-controls">
+                                            <button type="button" class="btn btn-secondary" id="recognizeStartWebcam">
+                                                <i class="fas fa-video"></i>
+                                                Ativar Câmera
+                                            </button>
+                                            <button type="button" class="btn btn-primary" id="recognizeCapturePhoto" style="display: none;">
+                                                <i class="fas fa-camera"></i>
+                                                Capturar Foto
+                                            </button>
+                                            <button type="button" class="btn btn-warning" id="recognizeRetakePhoto" style="display: none;">
+                                                <i class="fas fa-redo"></i>
+                                                Tirar Novamente
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="recognizeStopWebcam" style="display: none;">
+                                                <i class="fas fa-stop"></i>
+                                                Parar Câmera
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-search"></i>
+                            Reconhecer Usuário
+                        </button>
+                    </form>
+                    
+                    <div class="recognition-result" id="recognitionResult" style="display: none;">
+                        <div class="result-content">
+                            <div class="result-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="result-info">
+                                <h3 id="resultName"></h3>
+                                <p id="resultEmail"></p>
+                                <div class="confidence">
+                                    <span>Confiança: </span>
+                                    <span id="resultConfidence"></span>%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aba de Usuários -->
+            <div class="tab-content" id="users">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-users"></i> Usuários Cadastrados</h2>
+                        <p>Lista de todos os usuários cadastrados no sistema</p>
+                    </div>
+                    <div class="users-list" id="usersList">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Carregando usuários...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aba de Presenças -->
+            <div class="tab-content" id="attendance">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-clipboard-list"></i> Registros de Presença</h2>
+                        <p>Histórico de presenças registradas no sistema</p>
+                    </div>
+                    <div class="attendance-list" id="attendanceList">
+                        <div class="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Carregando registros...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aba de Administração -->
+            <div class="tab-content" id="admin">
+                <!-- Tela de Login -->
+                <div class="admin-login" id="adminLogin">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-user-shield"></i> Login de Administrador</h2>
+                            <p>Faça login para acessar o painel administrativo</p>
+                        </div>
+                        <form id="adminLoginForm" class="form">
+                            <div class="form-group">
+                                <label for="adminUsername">Username</label>
+                                <input type="text" id="adminUsername" name="username" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminPassword">Password</label>
+                                <input type="password" id="adminPassword" name="password" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Fazer Login
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Painel Administrativo -->
+                <div class="admin-panel" id="adminPanel" style="display: none;">
+                    <div class="admin-header">
+                        <h2><i class="fas fa-tachometer-alt"></i> Painel Administrativo</h2>
+                        <div class="admin-info">
+                            <span>Logado como: <strong id="adminUserInfo"></strong></span>
+                            <button class="btn btn-danger btn-sm" id="adminLogout">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="admin-content">
+                        <div class="admin-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3 id="totalUsers">0</h3>
+                                    <p>Total de Usuários</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clipboard-check"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3 id="totalAttendance">0</h3>
+                                    <p>Total de Presenças</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-calendar-day"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3 id="todayAttendance">0</h3>
+                                    <p>Presenças Hoje</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3 id="avgDailyAttendance">0</h3>
+                                    <p>Média Diária (30d)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dashboard com Gráficos -->
+                        <div class="dashboard-charts">
+                            <div class="chart-container">
+                                <div class="chart-header">
+                                    <h3><i class="fas fa-chart-line"></i> Presenças por Dia (Últimos 30 dias)</h3>
+                                </div>
+                                <canvas id="attendanceChart"></canvas>
+                            </div>
+                            
+                            <div class="chart-row">
+                                <div class="chart-container half">
+                                    <div class="chart-header">
+                                        <h3><i class="fas fa-chart-pie"></i> Distribuição de Confiança</h3>
+                                    </div>
+                                    <canvas id="confidenceChart"></canvas>
+                                </div>
+                                
+                                <div class="chart-container half">
+                                    <div class="chart-header">
+                                        <h3><i class="fas fa-trophy"></i> Top 5 Usuários</h3>
+                                    </div>
+                                    <canvas id="topUsersChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Notificações em Tempo Real -->
+                        <div class="notifications-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-bell"></i> Notificações em Tempo Real</h3>
+                                    <div class="notification-controls">
+                                        <span class="connection-status" id="connectionStatus">
+                                            <i class="fas fa-circle"></i>
+                                            Desconectado
+                                        </span>
+                                        <button class="btn btn-sm btn-secondary" id="clearNotifications">
+                                            <i class="fas fa-trash"></i>
+                                            Limpar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="notifications-container" id="notificationsContainer">
+                                    <div class="no-notifications">
+                                        <i class="fas fa-bell-slash"></i>
+                                        <p>Nenhuma notificação recente</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Gerenciamento de Backup -->
+                        <div class="backup-section">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-database"></i> Gerenciamento de Backup</h3>
+                                    <div class="backup-controls">
+                                        <button class="btn btn-sm btn-primary" id="createBackupBtn">
+                                            <i class="fas fa-plus"></i>
+                                            Criar Backup
+                                        </button>
+                                        <button class="btn btn-sm btn-secondary" id="refreshBackupsBtn">
+                                            <i class="fas fa-sync"></i>
+                                            Atualizar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Estatísticas de Backup -->
+                                <div class="backup-stats">
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="totalBackups">-</div>
+                                        <div class="stat-label">Total de Backups</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="totalBackupSize">-</div>
+                                        <div class="stat-label">Tamanho Total</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="lastBackupDate">-</div>
+                                        <div class="stat-label">Último Backup</div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <div class="stat-value" id="cronStatus">-</div>
+                                        <div class="stat-label">Backup Automático</div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Lista de Backups -->
+                                <div class="backup-list-container">
+                                    <h4><i class="fas fa-list"></i> Backups Disponíveis</h4>
+                                    <div class="backup-list" id="backupList">
+                                        <div class="loading-message">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            Carregando backups...
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Logs de Backup -->
+                                <div class="backup-logs-container">
+                                    <div class="logs-header">
+                                        <h4><i class="fas fa-file-alt"></i> Logs de Backup</h4>
+                                        <button class="btn btn-sm btn-secondary" id="refreshLogsBtn">
+                                            <i class="fas fa-sync"></i>
+                                            Atualizar Logs
+                                        </button>
+                                    </div>
+                                    <div class="backup-logs" id="backupLogs">
+                                        <div class="loading-message">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            Carregando logs...
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="admin-actions">
+                            <h3>Ações Administrativas</h3>
+                            <div class="action-buttons">
+                                <button class="btn btn-info" id="refreshStats">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Atualizar Estatísticas
+                                </button>
+                                <button class="btn btn-success" id="exportData">
+                                    <i class="fas fa-download"></i>
+                                    Gerar Relatórios
+                                </button>
+                                <button class="btn btn-warning" id="manageUsers">
+                                    <i class="fas fa-users-cog"></i>
+                                    Gerenciar Usuários
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Geração de Relatórios -->
+                        <div class="reports-section" id="reportsSection" style="display: none;">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-file-alt"></i> Gerar Relatórios de Presença</h3>
+                                    <p>Selecione o período e formato desejado para o relatório</p>
+                                </div>
+                                <div class="reports-form">
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="reportStartDate">Data Início</label>
+                                            <input type="date" id="reportStartDate" name="startDate">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="reportEndDate">Data Fim</label>
+                                            <input type="date" id="reportEndDate" name="endDate">
+                                        </div>
+                                    </div>
+                                    <div class="report-buttons">
+                                        <button class="btn btn-pdf" id="generatePDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                            Gerar PDF
+                                        </button>
+                                        <button class="btn btn-csv" id="generateCSV">
+                                            <i class="fas fa-file-csv"></i>
+                                            Gerar CSV
+                                        </button>
+                                        <button class="btn btn-excel" id="generateXLSX">
+                                            <i class="fas fa-file-excel"></i>
+                                            Gerar XLSX
+                                        </button>
+                                    </div>
+                                    <button class="btn btn-secondary" id="hideReports">
+                                        <i class="fas fa-times"></i>
+                                        Fechar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Loading -->
+    <div class="modal" id="loadingModal">
+        <div class="modal-content">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <p id="loadingText">Processando...</p>
+        </div>
+    </div>
+
+    <!-- Modal de Resultado -->
+    <div class="modal" id="resultModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle"></h3>
+                <button class="close-modal" id="closeModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-icon" id="modalIcon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <p id="modalMessage"></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
