@@ -524,7 +524,7 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 
 ## 👥 Autores
 
-- **Manus AI** - Desenvolvimento inicial e implementação completa
+- Margefson Barros
 
 ## 🙏 Agradecimentos
 
@@ -542,7 +542,4 @@ Para suporte técnico, dúvidas ou sugestões:
 - Consulte a documentação da API em `/api-docs`
 - Verifique os logs do sistema para diagnóstico
 
----
-
-**Desenvolvido com ❤️ por Manus AI**
 
